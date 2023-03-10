@@ -39,6 +39,7 @@ int run_bash(const char *command) {
       strcat(previousCommandOutput, foo);
       memset(foo, 0, 4096);
     }
+    if(strcmp(&previousCommandOutput[strlen(previousCommandOutput) - 1], "\n") == 0) previousCommandOutput[strlen(previousCommandOutput) - 1] = '\0';
     wait(NULL);
   }
 }
@@ -103,61 +104,69 @@ int main(int argc, char **argv, char **envp) {
   char _setenv[] = "setenv";
   char printenv[] = "printenv";
 
+  int pipeCount = 0;
+
   init();
   while (1) {
-    char **res = malloc(MAX_COMMANDS_SIZE * sizeof(char *));;
+    char **splitedCommand = malloc(MAX_COMMANDS_SIZE * sizeof(char *));;
     int isInternalCommand = 0;
     printf("%s", "% ");
     if(fgets(command, MAX_COMMANDS_SIZE, stdin) == NULL) {
-      break;
+      return 0;
     }
     if(strcmp(command, "\n") == 0) continue;
-    int argc = command_parse(command, res);
-
-    for (int i = 0; i < argc; i++) {
-      trim_command(res[i]);
-      printf ("res[%d] = %s\n", i, res[i]);
+    int splitedCommandCount = command_parse(command, splitedCommand);
+    for (int i = 0; i < splitedCommandCount; i++) {
+      trim_command(splitedCommand[i]);
+      // printf ("splitedCommand[%d] = %s\n", i, splitedCommand[i]);
+      if(strstr(splitedCommand[i], "|") != NULL) pipeCount++;
     }
 
-    if(strcmp(res[0], quit) == 0 || strcmp(res[0], _exit) == 0) {
-      break;
+    // printf("pipeCount: %d\n", pipeCount);
+
+    if(strcmp(splitedCommand[0], quit) == 0 || strcmp(splitedCommand[0], _exit) == 0) {
+      return 0;
     }
-      
-    char _command[100];
-    if(strcmp(res[0], printenv) == 0) {
-      if(argc < 2)  {
+
+
+    if(strcmp(splitedCommand[0], printenv) == 0) {
+      if(splitedCommandCount < 2)  {
         for (char **env = envp; *env != 0; env++) {
           char *thisEnv = *env;
           printf("%s\n", thisEnv);    
         }
       }
-      else if(argc > 2) printf("printenv: too many arguments\n");
-      else printf("%s", getenv(res[1]));
-    }else if(strcmp(res[0], _setenv) == 0) {
-      if(argc < 3) printf("setenv: not enough arguments\n");
-      else if(argc > 3) printf("setenv: too many arguments\n");
-      else setenv(res[1], res[2], 1);
+      else if(splitedCommandCount > 2) printf("printenv: too many arguments\n");
+      else printf("%s", getenv(splitedCommand[1]));
+    }else if(strcmp(splitedCommand[0], _setenv) == 0) {
+      if(splitedCommandCount < 3) printf("setenv: not enough arguments\n");
+      else if(splitedCommandCount > 3) printf("setenv: too many arguments\n");
+      else setenv(splitedCommand[1], splitedCommand[2], 1);
     }else {
-      printf("running command\n");
-      // check if it is an internal command
-
-      for(int i = 0; i < existBinCount; i++) {
-        if(strcmp(res[0], existBin[i]) == 0) {
-          isInternalCommand = 1;
-          break;
+      for(int i = 0 ; i < splitedCommandCount ; i++) {
+        // check if it is an internal command
+        for(int j = 0; j < existBinCount; j++) {
+          if(strcmp(splitedCommand[i], existBin[j]) == 0) {
+            isInternalCommand = 1;
+            break;
+          }
         }
-      }
-      if(isInternalCommand) {
-        // printf("Internal command\n");
-        char path[100];
-        strcpy(path, "./bin/");
-        strcat(path, command);
-        run_bash(path);
-      }else {
-        // printf("External command\n");
-        run_bash(command);
+        // build the command
+        // echo -e "previousCommandOutput" | _currentCommand
+        char currentCommand[1024];
+        strcpy(currentCommand, "echo -e \"");
+        strcat(currentCommand, previousCommandOutput);
+        strcat(currentCommand, "\" | ");
+        if(isInternalCommand) strcat(currentCommand, "./bin/");
+        while(i < splitedCommandCount && strstr(splitedCommand[i], "|") == NULL) {
+          strcat(currentCommand, splitedCommand[i]);
+          strcat(currentCommand, " ");
+          i++;
+        }
+        // printf("currentCommand: %s\n", currentCommand);
+        run_bash(currentCommand);
       }
     }
-    printf("%s", previousCommandOutput);
+    printf("%s\n", previousCommandOutput);
   }
 }
