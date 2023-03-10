@@ -7,10 +7,11 @@
 #include <ctype.h>
 
 #define die(e) do { fprintf(stderr, "%s\n", e); exit(EXIT_FAILURE); } while (0);
-
+#define MAX_COMMANDS_SIZE 5000
 char existBin[100][100];
-char existBinCount = 0;
+int existBinCount = 0;
 char previousCommandOutput[32768 + 1];
+
 int run_bash(const char *command) {
   int link[2];
   pid_t pid;
@@ -66,9 +67,11 @@ void init() {
   setenv("PATH", "/bin:./bin", 1);
 }
 
-void compress_spaces(char *str) {
-  char *dst = str;
+void trim_command(char *str) {
+  // remove line breaks
+  strtok(str, "\n");
 
+  char *dst = str;
   for (; *str; ++str) {
     *dst++ = *str;
     if (isspace(*str)) {
@@ -80,48 +83,46 @@ void compress_spaces(char *str) {
   *dst = 0;
 }
 
+int command_parse(char *command, char **args) {
+  int argc = 0;
+  char *arg = malloc(MAX_COMMANDS_SIZE * sizeof(char));
+  char *delim = " ";
+  arg = strtok(command, delim);
+  while (arg != NULL) {
+    args[argc++] = arg;
+    arg = strtok(NULL, delim);
+  }
+  args[argc] = NULL;
+  return argc;
+}
+
 int main(int argc, char * argv[]) {
-  char command[5000];
+  char command[MAX_COMMANDS_SIZE];
   char quit[] = "quit";
   char _exit[] = "exit";
   char _setenv[] = "setenv";
   char printenv[] = "printenv";
-  char delim[] = " ";
+
   init();
   while (1) {
-    char **res  = NULL;
-    int n_spaces = 0;
+    char **res = malloc(MAX_COMMANDS_SIZE * sizeof(char *));;
     int isInternalCommand = 0;
     printf("%s", "% ");
-    if(fgets(command, 5000 ,stdin) == NULL || strcmp(command, quit) == 10 || strcmp(command, _exit) == 10) { // 10 is the difference between the values of 'quit' and 'quit\n'
+    if(fgets(command, MAX_COMMANDS_SIZE, stdin) == NULL) {
       break;
     }
     if(strcmp(command, "\n") == 0) continue;
+    int argc = command_parse(command, res);
 
-    // remove all new line
-    command[strcspn(command,"\n")] = '\0';
-    compress_spaces(command);
-
-    // cut the command with space
-    char *p = strtok(command, delim);
-    while(p) {
-      res = realloc (res, sizeof (char*) * ++n_spaces);
-
-      if(res == NULL)
-        exit(-1); /* memory allocation failed */
-
-      res[n_spaces-1] = p;
-
-      p = strtok (NULL, " ");
-    }
-
-    /* realloc one extra element for the last NULL */
-    res = realloc(res, sizeof (char*) * (n_spaces+1));
-    res[n_spaces] = 0;
-
-    for (int i = 0; i < n_spaces; i++)
+    for (int i = 0; i < argc; i++) {
+      trim_command(res[i]);
       printf ("res[%d] = %s\n", i, res[i]);
-
+    }
+    printf("%s", res[0]);
+    if(strcmp(res[0], quit) == 0 || strcmp(res[0], _exit) == 0) {
+      break;
+    }
+      
     char _command[100];
     if(strcmp(res[0], printenv) == 0 || strcmp(res[0], printenv) == 10) {
       printf("printing env");
@@ -130,32 +131,29 @@ int main(int argc, char * argv[]) {
       printf("setting env");
       setenv(res[1], res[2], 1);
     }else {
+
+
       printf("running command");
-      run_bash(command);
-    }
+      // check if it is an internal command
 
-    
-    // check if it is an internal command
-
-    /*for(int i = 0; i < existBinCount; i++) {
-      // printf("bin %s %d\n",existBin[i],strcmp(command, existBin[i]));
-      if(strcmp(command, existBin[i]) == 0 || strcmp(command, existBin[i]) == 10) {
-        isInternalCommand = 1;
-        break;
+      for(int i = 0; i < existBinCount; i++) {
+        // printf("bin %s %d\n",existBin[i],strcmp(command, existBin[i]));
+        if(strcmp(command, existBin[i]) == 0 || strcmp(command, existBin[i]) == 10) {
+          isInternalCommand = 1;
+          break;
+        }
+      }
+      if(isInternalCommand) {
+        // printf("Internal command\n");
+        char path[100];
+        strcpy(path, "./bin/");
+        strcat(path, command);
+        run_bash(path);
+      }else {
+        // printf("External command\n");
+        run_bash(command);
       }
     }
-
-    if(isInternalCommand) {
-      // printf("Internal command\n");
-      char path[100];
-      strcpy(path, "./bin/");
-      strcat(path, command);
-      run_bash(path);
-    }else {
-      // printf("External command\n");
-      run_bash(command);
-    }*/
-    //printf("%s", previousCommandOutput);
-    
+    printf("%s", previousCommandOutput);
   }
 }
