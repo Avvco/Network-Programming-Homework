@@ -96,7 +96,7 @@ int command_parse(char *command, char **args) {
   return argc;
 }
 
-int main(int argc, char * argv[]) {
+int main(int argc, char **argv, char **envp) {
   char command[MAX_COMMANDS_SIZE];
   char quit[] = "quit";
   char _exit[] = "exit";
@@ -118,27 +118,31 @@ int main(int argc, char * argv[]) {
       trim_command(res[i]);
       printf ("res[%d] = %s\n", i, res[i]);
     }
-    printf("%s", res[0]);
+
     if(strcmp(res[0], quit) == 0 || strcmp(res[0], _exit) == 0) {
       break;
     }
       
     char _command[100];
-    if(strcmp(res[0], printenv) == 0 || strcmp(res[0], printenv) == 10) {
-      printf("printing env");
-      printf("%s", getenv(res[1]));
+    if(strcmp(res[0], printenv) == 0) {
+      if(argc < 2)  {
+        for (char **env = envp; *env != 0; env++) {
+          char *thisEnv = *env;
+          printf("%s\n", thisEnv);    
+        }
+      }
+      else if(argc > 2) printf("printenv: too many arguments\n");
+      else printf("%s", getenv(res[1]));
     }else if(strcmp(res[0], _setenv) == 0) {
-      printf("setting env");
-      setenv(res[1], res[2], 1);
+      if(argc < 3) printf("setenv: not enough arguments\n");
+      else if(argc > 3) printf("setenv: too many arguments\n");
+      else setenv(res[1], res[2], 1);
     }else {
-
-
-      printf("running command");
+      printf("running command\n");
       // check if it is an internal command
 
       for(int i = 0; i < existBinCount; i++) {
-        // printf("bin %s %d\n",existBin[i],strcmp(command, existBin[i]));
-        if(strcmp(command, existBin[i]) == 0 || strcmp(command, existBin[i]) == 10) {
+        if(strcmp(res[0], existBin[i]) == 0) {
           isInternalCommand = 1;
           break;
         }
