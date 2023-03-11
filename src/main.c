@@ -6,11 +6,15 @@
 #include <dirent.h> 
 #include <ctype.h>
 
-#define die(e) do { fprintf(stderr, "%s\n", e); exit(EXIT_FAILURE); } while (0);
+#define die(e) do { fprintf(stderr, "stderr: %s\n", e); exit(EXIT_FAILURE); } while (0);
 #define MAX_COMMANDS_SIZE 5000
+#define PREVIOUS_COMMAND_OUTPUT_SIZE 32768
 char existBin[100][100];
 int existBinCount = 0;
-char previousCommandOutput[32768 + 1];
+char previousCommandOutput[PREVIOUS_COMMAND_OUTPUT_SIZE];
+
+// use for number pipe
+char savedCommandOutput[PREVIOUS_COMMAND_OUTPUT_SIZE];
 
 int run_bash(const char *command) {
   int link[2];
@@ -24,7 +28,6 @@ int run_bash(const char *command) {
     die("fork");
 
   if(pid == 0) {
-
     dup2 (link[1], STDOUT_FILENO);
     close(link[0]);
     close(link[1]);
@@ -33,7 +36,7 @@ int run_bash(const char *command) {
   } else {
     close(link[1]);
     int nbytes = 0;
-    memset(previousCommandOutput, 0, 32768);
+    memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
     while(0 != (nbytes = read(link[0], foo, sizeof(foo)))) {
       //printf("%.*s\n", nbytes, foo);
       strcat(previousCommandOutput, foo);
@@ -62,7 +65,7 @@ void init() {
     }
     closedir(d);
   }
-  memset(previousCommandOutput, 0, 32768);
+  memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
 
   // mark this line if you want to use the system executables.
   setenv("PATH", "/bin:./bin", 1);
@@ -103,6 +106,7 @@ int main(int argc, char **argv, char **envp) {
   char _exit[] = "exit";
   char _setenv[] = "setenv";
   char printenv[] = "printenv";
+  char command_not_found[] = "command not found";
 
   int pipeCount = 0;
 
@@ -116,6 +120,7 @@ int main(int argc, char **argv, char **envp) {
     }
     if(strcmp(command, "\n") == 0) continue;
     int splitedCommandCount = command_parse(command, splitedCommand);
+    int currentCommandIndex = 0;
     for (int i = 0; i < splitedCommandCount; i++) {
       trim_command(splitedCommand[i]);
       // printf ("splitedCommand[%d] = %s\n", i, splitedCommand[i]);
@@ -130,42 +135,54 @@ int main(int argc, char **argv, char **envp) {
 
 
     if(strcmp(splitedCommand[0], printenv) == 0) {
-      if(splitedCommandCount < 2)  {
+      if(splitedCommandCount < 2 || strcmp(splitedCommand[1], "|") == 0) {
+        currentCommandIndex += 2;
+        memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
         for (char **env = envp; *env != 0; env++) {
           char *thisEnv = *env;
-          printf("%s\n", thisEnv);    
+          strcat(previousCommandOutput, thisEnv);
+          strcat(previousCommandOutput, "\n");
         }
       }
-      else if(splitedCommandCount > 2) printf("printenv: too many arguments\n");
-      else printf("%s", getenv(splitedCommand[1]));
+      else if(splitedCommandCount > 2 && strcmp(splitedCommand[2], "|") != 0) {
+        printf("printenv: too many arguments\n");
+        memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
+        continue;
+      }
+      else {
+        currentCommandIndex += 3;
+        memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
+        strcat(previousCommandOutput, getenv(splitedCommand[1]));
+      }
+      if(strcmp(&previousCommandOutput[strlen(previousCommandOutput) - 1], "\n") == 0) previousCommandOutput[strlen(previousCommandOutput) - 1] = '\0';
     }else if(strcmp(splitedCommand[0], _setenv) == 0) {
       if(splitedCommandCount < 3) printf("setenv: not enough arguments\n");
       else if(splitedCommandCount > 3) printf("setenv: too many arguments\n");
       else setenv(splitedCommand[1], splitedCommand[2], 1);
-    }else {
-      for(int i = 0 ; i < splitedCommandCount ; i++) {
-        // check if it is an internal command
-        for(int j = 0; j < existBinCount; j++) {
-          if(strcmp(splitedCommand[i], existBin[j]) == 0) {
-            isInternalCommand = 1;
-            break;
-          }
-        }
-        // build the command
-        // echo -e "previousCommandOutput" | _currentCommand
-        char currentCommand[1024];
-        strcpy(currentCommand, "echo -e \"");
-        strcat(currentCommand, previousCommandOutput);
-        strcat(currentCommand, "\" | ");
-        if(isInternalCommand) strcat(currentCommand, "./bin/");
-        while(i < splitedCommandCount && strstr(splitedCommand[i], "|") == NULL) {
-          strcat(currentCommand, splitedCommand[i]);
-          strcat(currentCommand, " ");
-          i++;
-        }
-        // printf("currentCommand: %s\n", currentCommand);
-        run_bash(currentCommand);
+      currentCommandIndex += 3;
+    }
+    for(int i = currentCommandIndex ; i < splitedCommandCount ; i++) {
+      // check if it is an internal command
+      for(int j = 0; j < existBinCount; j++) {
+        if(strcmp(splitedCommand[i], existBin[j]) == 0) {
+          isInternalCommand = 1;
+          break;
+        }else isInternalCommand = 0;
       }
+      // build the command
+      // echo -e "previousCommandOutput" | _currentCommand
+      char currentCommand[1024];
+      strcpy(currentCommand, "echo -e \"");
+      strcat(currentCommand, previousCommandOutput);
+      strcat(currentCommand, "\" | ");
+      if(isInternalCommand) strcat(currentCommand, "./bin/");
+      while(i < splitedCommandCount && strstr(splitedCommand[i], "|") == NULL) {
+        strcat(currentCommand, splitedCommand[i]);
+        strcat(currentCommand, " ");
+        i++;
+      }
+      // printf("currentCommand: %s\n", currentCommand);
+      run_bash(currentCommand);
     }
     printf("%s\n", previousCommandOutput);
   }
