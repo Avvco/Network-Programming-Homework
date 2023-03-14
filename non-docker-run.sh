@@ -1,4 +1,4 @@
-rm -f ./object/out.out
-gcc ./src/main.c -o ./object/out.out 
-./object/out.out
-rm -f ./object/out.out
+rm -f ./obj/out.out
+gcc ./src/main.c -o ./obj/out.out 
+./obj/out.out
+rm -f ./obj/out.out
