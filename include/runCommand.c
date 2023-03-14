@@ -66,7 +66,7 @@ int run_command(const char *command) {
       close(link1[READ_END]);
       close(link2[READ_END]);
       close(link2[WRITE_END]);
-      execl("/bin/echo", "-e", currentCommandOutput, (char *)0);
+      execl("./bin/echo", "-e", currentCommandOutput, (char *)0);
       die("echo: command not found");
     }else {
       // parent
