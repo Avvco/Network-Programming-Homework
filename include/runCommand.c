@@ -86,6 +86,7 @@ int run_command(const char *command) {
       if(strcmp(&previousCommandOutput[strlen(previousCommandOutput) - 1], "\n") == 0) previousCommandOutput[strlen(previousCommandOutput) - 1] = '\0';
       wait(NULL);
     }
+    wait(NULL);
   }
 
   // return to the original stdin for parent process
