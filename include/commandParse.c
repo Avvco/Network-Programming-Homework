@@ -26,7 +26,7 @@ void trim_command(char *str) {
  * 
  * @param command command to split
  * @param args the array to store the splited command
- * @return the number of splited command
+ * @return the number of the split commands
  */
 int command_parse(char *command, char **args) {
   int argc = 0;
