@@ -188,6 +188,8 @@ int main(int argc, char **argv, char **envp) {
         memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
         strcat(previousCommandOutput, savedCommandOutput);
         memset(savedCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
+      }else {
+        memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
       }
     }else {
       // command not found will not consume pipeCounter
