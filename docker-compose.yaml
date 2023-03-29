@@ -1,0 +1,12 @@
+version: '3.7'
+
+services:  
+  server:
+    image: gcc:latest
+    volumes:
+      - .:/tmp
+    working_dir: /tmp
+    container_name: server
+    ports:
+      - 64550:64550
+    command: [ "bash" , "./execute.sh" ]

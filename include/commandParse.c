@@ -1,4 +1,5 @@
 #define MAX_COMMANDS_SIZE 5000
+#include <ctype.h>
 
 /**
  * @brief trim the command by remove space and line breaks
@@ -6,7 +7,8 @@
  * @param str command to trim
  */
 void trim_command(char *str) {
-  // remove line breaks
+  // remove line breaks with both crlf and lf
+  strtok(str, "\r\n");
   strtok(str, "\n");
 
   char *dst = str;
@@ -39,4 +41,34 @@ int command_parse(char *command, char **args) {
   }
   args[argc] = NULL;
   return argc;
+}
+
+/**
+ * @brief remove leading spaces
+ * 
+ * @param str string to remove leading spaces
+ * @return the string without leading spaces
+ */
+char *removeLeading(char *str) {
+  int idx = 0, j, k = 0;
+  char *str1 = malloc(MAX_COMMANDS_SIZE * sizeof(char));
+  // Iterate String until last
+  // leading space character
+  while(str[idx] == ' ' || str[idx] == '\t' || str[idx] == '\n') {
+    idx++;
+  }
+
+  // Run a for loop from index until the original
+  // string ends and copy the content of str to str1
+  for(j = idx; str[j] != '\0'; j++) {
+    str1[k] = str[j];
+    k++;
+  }
+
+  // Insert a string terminating character
+  // at the end of new string
+  str1[k] = '\0';
+  return str1;
+  // Print the string with no whitespaces
+  // printf("%s", str1);
 }
