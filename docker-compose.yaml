@@ -9,4 +9,4 @@ services:
     container_name: server
     ports:
       - 64550:64550
-    command: [ "bash" , "./execute.sh" ]
+    entrypoint: [ "./execute.sh" ]
