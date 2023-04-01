@@ -4,8 +4,8 @@ services:
   server:
     image: gcc:latest
     volumes:
-      - .:/tmp
-    working_dir: /tmp
+      - .:/tmp/network-programming
+    working_dir: /tmp/network-programming
     container_name: server
     ports:
       - 64550:64550
