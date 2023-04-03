@@ -30,10 +30,7 @@ int run_command(const char *command) {
   char foo[4096 + 1];
   char cpcommand[MAX_COMMANDS_SIZE];
 
-  char **_command = malloc(MAX_COMMANDS_SIZE * sizeof(char *));
-
-  strcpy(cpcommand, command);
-  command_parse(cpcommand, _command);
+  char **_command = parseFrom1dTo2d(command);
 
 
   if (pipe(link1) == -1)

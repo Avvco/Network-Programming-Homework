@@ -79,3 +79,13 @@ char *removeLeading(char *str) {
   // Print the string with no whitespaces
   // printf("%s", str1);
 }
+
+char **parseFrom1dTo2d(const char *command) {
+  char cpcommand[MAX_COMMANDS_SIZE];
+
+  char **_command = malloc(MAX_COMMANDS_SIZE * sizeof(char *));
+
+  strcpy(cpcommand, command);
+  command_parse(cpcommand, _command);
+  return _command;
+}

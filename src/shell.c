@@ -133,7 +133,7 @@ int process(char *command, Session *session, char **envp) {
       session -> pipeCounter--;
       memset(previousCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
       strcat(previousCommandOutput, session -> savedCommandOutput);
-      memset(session -> savedCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE);
+      memset(session -> savedCommandOutput, 0, PREVIOUS_COMMAND_OUTPUT_SIZE); 
     }
 
     /**

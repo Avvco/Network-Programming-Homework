@@ -5,7 +5,9 @@ typedef struct{
 } CustomCommand;
 
 #include "./customCommand/who.c"
+#include "./customCommand/name.c"
 
 CustomCommand customCommand[] = {
-  {"who", whoPreCommand, whoProcessCommand}
+  {"who", whoPreCommand, whoProcessCommand},
+  {"name", namePreCommand, nameProcessCommand}
 };
