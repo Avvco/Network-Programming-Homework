@@ -8,27 +8,33 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/time.h>
+#include <sys/wait.h>
+#include <dirent.h> 
+#include <ctype.h>
 
-#include "../include/session.c"
-#include "../include/commandParse.c"
-#include "./shell.c"
 
 #define DEFAULT_PORT    64550
 #define BUFF_SIZE       2048
 #define SELECT_TIMEOUT  5
 #define MAX_CLIENTS     10
 
-Session *session;
+#include "../include/session.c"
+#include "../include/commandParse.c"
+#include "./shell.c"
 
 void init() {
   initShell();
-
+  // initCustomCommand();
   // init session
   session = malloc(MAX_CLIENTS * sizeof(Session));
-  for(int i = 0 ; i < MAX_CLIENTS ; i++) {
+  for(int i = 0 ; i < MAX_CLIENTS ; i++) { 
     session[i].id = -1; 
+    session[i].assignedId = -1;
     session[i].pipeCounter = 0;
     session[i].mode = 0;
+    session[i].port = 0;
+    session[i].ip = malloc(16 * sizeof(char));
+    session[i].name = malloc(256 * sizeof(char));
     session[i].savedCommandOutput = malloc(PREVIOUS_COMMAND_OUTPUT_SIZE * sizeof(char));
     session[i].previousCommandOutput = malloc(PREVIOUS_COMMAND_OUTPUT_SIZE * sizeof(char));
   }
@@ -62,7 +68,7 @@ int updateMaxfd(fd_set fds, int maxfd) {
 }
 
 int main(int argc, char **argv, char **envp) {
-
+  fprintf(stderr, "server started\n");
   init();
 
 	unsigned short int port;
@@ -170,7 +176,8 @@ int main(int argc, char **argv, char **envp) {
 					perror("inet_ntop failed");
 					exit(EXIT_FAILURE);
 				}
-				fprintf(stderr, "accept a client from: %s\n", client_ip_str);
+				fprintf(stderr, "accept a client from: %s:%d\n", client_ip_str, ntohs(client_addr.sin_port));
+
 				// set new_sock to non-blocking
 				setSockNonBlock(new_sock);
 				// add new_sock into select
@@ -183,6 +190,7 @@ int main(int argc, char **argv, char **envp) {
         buffer = strcat(buffer, prefix);
         send(new_sock, buffer, strlen(buffer) + 1, 0);
 			} else {
+				// client socket, eligible to read from client
         int sessionFound = 0;
         for(int _session = 0; _session < MAX_CLIENTS; _session++) {
           if(session[_session].id == i) {
@@ -191,18 +199,30 @@ int main(int argc, char **argv, char **envp) {
           }
         }
         if(sessionFound == 0) {
-          for(int _session = 0; _session < MAX_CLIENTS; _session++) {
-            if(session[_session].id == -1) {
-              session[_session].id = i;
-              session[i].pipeCounter = 0;
-              session[i].mode = 0;
-              memset(session[i].savedCommandOutput, 0, sizeof(session[i].savedCommandOutput));
+          fprintf(stderr, "sessionNotFound: %d\n", i);
+          session[i].id = i;
+          session[i].pipeCounter = 0;
+          session[i].mode = 0;
+          session[i].port = ntohs(client_addr.sin_port);
+          strcpy(session[i].ip, client_ip_str);
+          strcpy(session[i].name, "anonymous");
+          memset(session[i].savedCommandOutput, 0, sizeof(session[i].savedCommandOutput));
+          for(int _assignedId = 0 ; _assignedId < MAX_CLIENTS; _assignedId++) {
+            int used = 0;
+            for(int j = 0; j < MAX_CLIENTS; j++) {
+              if(session[j].assignedId == _assignedId) {
+                used = 1;
+                break;
+              }
+            }
+            if(used == 0) {
+              session[i].assignedId = _assignedId;
               break;
             }
+            
           }
         }
-        
-				// client socket, eligible to read from client
+
         memset(buffer, 0, sizeof(buffer));
         if((recv_size = recv(i, buffer, sizeof(buffer), 0)) == -1) {
           perror("recv failed");
@@ -228,6 +248,7 @@ int main(int argc, char **argv, char **envp) {
           for(int _session = 0; _session < MAX_CLIENTS; _session++) {
             if(session[_session].id == i) {
               session[_session].id = -1;
+              session[_session].assignedId = -1;
               break;
             }
           }

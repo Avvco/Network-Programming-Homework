@@ -67,6 +67,13 @@ char *removeLeading(char *str) {
 
   // Insert a string terminating character
   // at the end of new string
+  
+  // prevent start and only with \t
+  if(k == 0) {
+    str1[1] = '\0';
+    str1[0] = '\n';
+    return str1;
+  }
   str1[k] = '\0';
   return str1;
   // Print the string with no whitespaces

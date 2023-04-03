@@ -1,11 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
-#include <dirent.h> 
-#include <ctype.h>
-
 #define PREVIOUS_COMMAND_OUTPUT_SIZE 32768
 #define die(e) do { fprintf(stderr, "%s\n", e); exit(EXIT_FAILURE); } while (0);
 
@@ -17,6 +9,7 @@ char *prefix = "% ";
 char *welcome = "Welcome to the shell!\nType 'quit' or 'exit' to exit the shell.\n";
 
 #include "../include/runCommand.c"
+#include "../include/customCommand.c"
 
 void initShell() {
   //printf("Welcome to the shell!\n");
@@ -56,15 +49,14 @@ int process(char *command, Session *session, char **envp) {
   char _exit[] = "exit";
   char _setenv[] = "setenv";
   char printenv[] = "printenv";
-  char *faliedCommand = malloc(128 * sizeof(char));
+  char *currentFirstCommand = malloc(128 * sizeof(char));
 
   char **splitedCommand = malloc(MAX_COMMANDS_SIZE * sizeof(char *));
   int isInternalCommand = 0;
   int piped = 0;
 
   command = removeLeading(command);
-
-  if(strcmp(command, "\n") == 0 || strcmp(command, "\r\n") == 0) return 1;
+  if(strcmp(command, "\n") == 0 || strcmp(command, "\r\n") == 0 || strcmp(command, "\r") == 0) return 1;
 
   int splitedCommandCount = command_parse(command, splitedCommand);
   int currentCommandIndex = 0;
@@ -151,7 +143,7 @@ int process(char *command, Session *session, char **envp) {
     if(isInternalCommand) strcat(currentCommand, "./bin/");
     int counter = 0;
     while(i < splitedCommandCount && strstr(splitedCommand[i], "|") == NULL) {
-      if(counter == 0) strcpy(faliedCommand, splitedCommand[i]);
+      if(counter == 0) strcpy(currentFirstCommand, splitedCommand[i]);
       strcat(currentCommand, splitedCommand[i]);
       strcat(currentCommand, " ");
       i++;
@@ -159,7 +151,27 @@ int process(char *command, Session *session, char **envp) {
     }
 
     // printf("currentCommand: %s\n", currentCommand);
-    run_command(currentCommand);
+
+    /**
+     * Check if the command is a custom command then build the requirement for the command and run.
+     */
+    int isCustomCommand = 0;
+    for(int j = 0 ; j < sizeof(customCommand) / sizeof(customCommand[0]) ; j++) {
+      if(strcmp(customCommand[j].name, currentFirstCommand) == 0) {
+        isCustomCommand = 1;
+        void *commandRequirement = customCommand[j].preCommand(currentCommand, session);
+        customCommand[j].processCommand(commandRequirement);
+        free(commandRequirement);
+        break;
+      }
+    }
+
+    if(!isCustomCommand) {
+      run_command(currentCommand);
+    }
+    
+    // remove the last line break
+    if(strcmp(&previousCommandOutput[strlen(previousCommandOutput) - 1], "\n") == 0) previousCommandOutput[strlen(previousCommandOutput) - 1] = '\0';
 
 
     /**
@@ -202,7 +214,7 @@ int process(char *command, Session *session, char **envp) {
     }
   }else {
     // command not found will not consume session -> pipeCounter
-    strcat(session -> previousCommandOutput, faliedCommand);
+    strcat(session -> previousCommandOutput, currentFirstCommand);
     strcat(session -> previousCommandOutput, ": command not found");
     if(session -> pipeCounter != 0) session -> pipeCounter++;
   }

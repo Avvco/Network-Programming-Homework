@@ -12,7 +12,7 @@ function execute() {
     #counter=$((counter+1))
     if [ $counter != 0 ]; then
       echo "Detected change..."
-      eval "$@"
+      eval "./reloadDocker.sh"
       counter=0
     else
       counter=1
