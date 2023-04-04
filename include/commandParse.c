@@ -80,6 +80,12 @@ char *removeLeading(char *str) {
   // printf("%s", str1);
 }
 
+/**
+ * @brief parse the command from 1d to 2d
+ * 
+ * @param command command to parse
+ * @return the parsed command
+ */
 char **parseFrom1dTo2d(const char *command) {
   char cpcommand[MAX_COMMANDS_SIZE];
 

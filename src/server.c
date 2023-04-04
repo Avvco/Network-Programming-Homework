@@ -147,8 +147,7 @@ int main(int argc, char **argv, char **envp) {
 		timeout.tv_usec = 0;
 		//fprintf(stderr, "selecting maxfd=%d\n", maxfd);
 
-		// select 
-    // not setting writefds errorfds here
+		// select, not setting writefds errorfds here
 		res = select(maxfd + 1, &readfds, NULL, NULL, &timeout);
 		if (res == -1) {
 			perror("select failed");
@@ -188,25 +187,23 @@ int main(int argc, char **argv, char **envp) {
         char *buffer = malloc(sizeof(char) * 64);
         strcpy(buffer, welcome);
         buffer = strcat(buffer, prefix);
-        send(new_sock, buffer, strlen(buffer) + 1, 0);
-			} else {
-				// client socket, eligible to read from client
+
         int sessionFound = 0;
         for(int _session = 0; _session < MAX_CLIENTS; _session++) {
-          if(session[_session].id == i) {
+          if(session[_session].id == new_sock) {
             sessionFound = 1;
             break;
           }
         }
         if(sessionFound == 0) {
-          fprintf(stderr, "sessionNotFound: %d\n", i);
-          session[i].id = i;
-          session[i].pipeCounter = 0;
-          session[i].mode = 0;
-          session[i].port = ntohs(client_addr.sin_port);
-          strcpy(session[i].ip, client_ip_str);
-          strcpy(session[i].name, "anonymous");
-          memset(session[i].savedCommandOutput, 0, sizeof(session[i].savedCommandOutput));
+          //fprintf(stderr, "sessionNotFound: %d\n", i);
+          session[new_sock].id = new_sock;
+          session[new_sock].pipeCounter = 0;
+          session[new_sock].mode = 0;
+          session[new_sock].port = ntohs(client_addr.sin_port);
+          strcpy(session[new_sock].ip, client_ip_str);
+          strcpy(session[new_sock].name, "anonymous");
+          memset(session[new_sock].savedCommandOutput, 0, sizeof(session[new_sock].savedCommandOutput));
           for(int _assignedId = 0 ; _assignedId < MAX_CLIENTS; _assignedId++) {
             int used = 0;
             for(int j = 0; j < MAX_CLIENTS; j++) {
@@ -216,19 +213,22 @@ int main(int argc, char **argv, char **envp) {
               }
             }
             if(used == 0) {
-              session[i].assignedId = _assignedId;
+              session[new_sock].assignedId = _assignedId;
               break;
             }
-            
           }
         }
 
+        send(new_sock, buffer, strlen(buffer) + 1, 0);
+			} else {
+				// client socket, eligible to read from client
         memset(buffer, 0, sizeof(buffer));
         if((recv_size = recv(i, buffer, sizeof(buffer), 0)) == -1) {
           perror("recv failed");
           exit(EXIT_FAILURE);
         }
-        fprintf(stderr, "recved from new_sock=%d : %s(%d length string)\n", i, buffer, recv_size);
+        // fprintf(stderr, "recved from new_sock=%d : %s(%d length string)\n", i, buffer, recv_size);
+        fprintf(stderr, "recved from new_sock=%d : %s", i, buffer);
 
         memset(session[i].previousCommandOutput, 0, sizeof(session[i].previousCommandOutput));
         trim_command(buffer);
