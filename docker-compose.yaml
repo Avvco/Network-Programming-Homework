@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.9'
 
 services:  
   server:
@@ -9,4 +9,22 @@ services:
     container_name: server
     ports:
       - 64550:64550
+    stop_grace_period: 0s
     entrypoint: [ "./execute.sh" ]
+  redis:
+    image: bitnami/redis:latest
+    container_name: redis
+    environment:
+      ALLOW_EMPTY_PASSWORD: yes
+      REDIS_PASSWORD: password
+    volumes:
+      - ./redis:/bitnami/redis/data
+  redisinsight:
+    image: redislabs/redisinsight:latest
+    container_name: redisinsight
+    ports:
+      - 64549:8001
+    environment:
+      REDISINSIGHT_PASSWORD: password
+    volumes:
+      - ./redisinsight:/db
