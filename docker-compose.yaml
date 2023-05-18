@@ -2,7 +2,9 @@ version: '3.9'
 
 services:  
   server:
-    image: gcc:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     volumes:
       - .:/tmp/network-programming
     working_dir: /tmp/network-programming
@@ -11,6 +13,24 @@ services:
       - 64550:64550
     stop_grace_period: 0s
     entrypoint: [ "./execute.sh" ]
+    environment:
+      WAIT_HOSTS: redis:6379, postgres:5432
+      WAIT_LOGGER_LEVEL: info
+  postgres:
+    image: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./postgres/data:/var/lib/postgresql/data
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - 64549:8080
   redis:
     image: bitnami/redis:latest
     container_name: redis
@@ -23,7 +43,7 @@ services:
     image: redislabs/redisinsight:latest
     container_name: redisinsight
     ports:
-      - 64549:8001
+      - 64548:8001
     environment:
       REDISINSIGHT_PASSWORD: password
     volumes:

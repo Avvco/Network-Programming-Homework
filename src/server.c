@@ -18,20 +18,31 @@
 #define SELECT_TIMEOUT  5
 #define MAX_CLIENTS     10
 
+#include "../include/dbService.c"
 #include "../include/session.c"
 #include "../include/commandParse.c"
 #include "./shell.c"
 
+
+/*int main() {
+  fprintf(stderr, "server started\n");
+
+  char a[]  = "set a 1";
+  char *b;
+  int u = -1;
+  u = doOnRedis(a, &b);
+  fprintf(stderr, "line29: %s\n", b);
+  fprintf(stderr, "line30: %d\n", u);
+}*/
+
 void init() {
   initShell();
-  // initCustomCommand();
   // init session
   session = malloc(MAX_CLIENTS * sizeof(Session));
   for(int i = 0 ; i < MAX_CLIENTS ; i++) { 
     session[i].id = -1; 
     session[i].assignedId = -1;
     session[i].pipeCounter = 0;
-    session[i].mode = 0;
     session[i].port = 0;
     session[i].ip = malloc(16 * sizeof(char));
     session[i].name = malloc(256 * sizeof(char));
@@ -199,7 +210,6 @@ int main(int argc, char **argv, char **envp) {
           //fprintf(stderr, "sessionNotFound: %d\n", i);
           session[new_sock].id = new_sock;
           session[new_sock].pipeCounter = 0;
-          session[new_sock].mode = 0;
           session[new_sock].port = ntohs(client_addr.sin_port);
           strcpy(session[new_sock].ip, client_ip_str);
           strcpy(session[new_sock].name, "anonymous");

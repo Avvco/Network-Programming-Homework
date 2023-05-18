@@ -55,5 +55,6 @@ dkms.conf
 # DB file
 redis/*
 redisinsight/*
+postgres/*
 
 !.gitkeep

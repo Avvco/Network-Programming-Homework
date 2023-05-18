@@ -13,8 +13,15 @@ sudo bash run.sh
 ## Services
 ### Server
 - URL <http://127.0.0.1:64550>
-### RedisInsight
+### Adminer
 - URL <http://127.0.0.1:64549>
+- System: `PostgreSQL`
+- Server: `postgres`
+- Username: `postgres`
+- Password: `password`
+- Database: leave it empty
+### RedisInsight
+- URL <http://127.0.0.1:64548>
 - Procedule
     1. Choose I already have a database
     2. Connect to a redis Database
