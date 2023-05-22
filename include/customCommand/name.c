@@ -1,12 +1,14 @@
 typedef struct{
   int currentId;
   char **newName;
+  char *userId;
 } Name;
 
 void* namePreCommand(char *command, Session *session) {
   Name *name = malloc(sizeof(Name));
   name -> currentId = session -> assignedId;
   name -> newName = parseFrom1dTo2d(command);
+  name -> userId = session -> loggedInUserId;
   return (void *)name;
 }
 
@@ -22,28 +24,15 @@ void* nameProcessCommand(void *commandRequirement) {
   }else if(current -> newName[2] != NULL) {
     strcpy(returnStr, "name: too many argument.");
   }else {
-    int nameIsTaken = 0;
-    for(int i = 0 ; i < MAX_CLIENTS ; i++) {
-      if(strcmp(session[i].name, current -> newName[1]) == 0) {
-        strcpy(returnStr, "name is already taken.");
-        nameIsTaken = 1;
-        break;
-      }
-    }
-    if(nameIsTaken == 0) {
-      for(int i = 0 ; i < MAX_CLIENTS ; i++) {
-        if(session[i].assignedId == current -> currentId) {
-          memset(session[i].name, 0, 256);
-          strcpy(session[i].name, current -> newName[1]);
-          break;
-        }
-      }
+    // need to copy the string because otherwise the name will not be correct after existsByUsername, reason unknown.
+    char *newName = malloc(8192 * sizeof(char));
+    strcpy(newName, current -> newName[1]);
+    if(existsByUsername(newName) == 0) {
+      setNameById(current -> userId, newName);
       strcpy(returnStr, "name change accept.");
     }else {
       strcpy(returnStr, "name already in used, choose another name.");
     }
-    
   }
-  fprintf(stderr, "command: %s %s\n", current -> newName[0], current -> newName[1]);
   strcat(previousCommandOutput, returnStr);
 }

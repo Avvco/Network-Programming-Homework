@@ -116,6 +116,27 @@ int initPostgre() {
   return 0;
 }
 
+/**
+ * @brief print the query result in table format
+ * 
+ * @param output the postgres query result
+ */
+void printTable(PGresult *output) {
+  fprintf(stderr, "Table with row: %d, column: %d\n", PQntuples(output), PQnfields(output));
+  // print column name
+  for (int i = 0; i < PQnfields(output); i++) {
+    fprintf(stderr, "%s ", PQfname(output, i));
+  }
+  fprintf(stderr, "\n");
+  // print column values
+  for (int i = 0; i < PQntuples(output); i++) {
+    for (int j = 0; j < PQnfields(output); j++) {
+      fprintf(stderr, "%s ", PQgetvalue(output, i, j));
+    }
+    fprintf(stderr, "\n");
+  }
+}
+
 
 
 /**
@@ -166,19 +187,64 @@ int registerUser(char *userName, char *password) {
   return 0;
 }
 
-// function to print postgres table
-void printTable(PGresult *output) {
-  fprintf(stderr, "Table with row: %d, column: %d\n", PQntuples(output), PQnfields(output));
-  // print column name
-  for (int i = 0; i < PQnfields(output); i++) {
-    fprintf(stderr, "%s ", PQfname(output, i));
+/**
+ * @brief find user with the name in database
+ * 
+ * @param userName 
+ * @return int 0 if not found, 1 if found, -1 if fail
+ */
+int existsByUsername(char *userName) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.user WHERE name = '%s';", userName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
   }
-  fprintf(stderr, "\n");
-  // print column values
-  for (int i = 0; i < PQntuples(output); i++) {
-    for (int j = 0; j < PQnfields(output); j++) {
-      fprintf(stderr, "%s ", PQgetvalue(output, i, j));
-    }
-    fprintf(stderr, "\n");
+  if(PQntuples(output) == 0) {
+    return 0;
   }
+  //printTable(output);
+  PQclear(output);
+  return 1;
+}
+
+/**
+ * @brief Set the Name of user with id
+ * 
+ * @param userId 
+ * @param newName 
+ * @return int 0 if success, -1 if fail
+ */
+int setNameById(char *userId, char *newName) {
+  PGresult *output;
+  fprintf(stderr, "Set name of user %s to %s\n", userId, newName);
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "UPDATE network.user SET name = '%s' WHERE user_id = '%s';", newName, userId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 0;
+}
+
+/**
+ * @brief Get the Name By User Id 
+ * 
+ * @param userId 
+ * @return the name of user, NULL if fail
+ */
+char *getNameByUserId(char *userId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT name FROM network.user WHERE user_id = '%s';", userId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return NULL;
+  }
+  if(PQntuples(output) == 0) {
+    return NULL;
+  }
+  char *name = malloc(2048 * sizeof(char));
+  strcpy(name, PQgetvalue(output, 0, 0));
+  PQclear(output);
+  return name;
 }

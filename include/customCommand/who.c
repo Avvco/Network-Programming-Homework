@@ -22,7 +22,7 @@ void* whoProcessCommand(void *commandRequirement) {
         snprintf(port, 16,"%d", session[j].port);
         char *ipAndPort = malloc(32 * sizeof(char));
         snprintf(ipAndPort, 32, "%s:%s", session[j].ip, port);
-        snprintf(currentStr, 256,"%-8d%-20s%-20s%-20s\n", i, session[j].name, ipAndPort, (current -> currentId == i) ? "<- (ME)" : "");
+        snprintf(currentStr, 256,"%-8d%-20s%-20s%-20s\n", i, getNameByUserId(session[i].loggedInUserId), ipAndPort, (current -> currentId == i) ? "<- (ME)" : "");
         strcat(returnStr, currentStr);
         free(currentStr);
         free(ipAndPort);

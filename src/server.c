@@ -213,7 +213,7 @@ int main(int argc, char **argv, char **envp) {
           session[new_sock].inputMode = -1;
           session[new_sock].mode = -1;
           strcpy(session[new_sock].ip, client_ip_str);
-          strcpy(session[new_sock].name, "anonymous");
+          // strcpy(session[new_sock].name, "anonymous");
           memset(session[new_sock].savedCommandOutput, 0, sizeof(session[new_sock].savedCommandOutput));
           for(int _assignedId = 0 ; _assignedId < MAX_CLIENTS; _assignedId++) {
             int used = 0;
@@ -243,7 +243,6 @@ int main(int argc, char **argv, char **envp) {
 
         memset(session[i].previousCommandOutput, 0, sizeof(session[i].previousCommandOutput));
         trim_command(buffer);
-
         // restart point for mode
       restart:
         if(session[i].mode == 2 || strcmp(buffer, quit) == 0 || strcmp(buffer, _exitTerm) == 0) { // logged in or exit handling
@@ -276,11 +275,9 @@ int main(int argc, char **argv, char **envp) {
             }
             continue;
           }else if(status == 0) {
-            strcat(session[i].previousCommandOutput, "\n");
-            sprintf(session[i].previousCommandOutput, "%s(%s)%s ", session[i].previousCommandOutput, session[i].name, prefix);
+            sprintf(session[i].previousCommandOutput, "%s\n(%s)%s", session[i].previousCommandOutput, getNameByUserId(session[i].loggedInUserId), prefix);
           }else if(status == 1) {
-            strcat(session[i].previousCommandOutput, prefix);
-            sprintf(session[i].previousCommandOutput, "%s(%s)%s ", session[i].previousCommandOutput, session[i].name, prefix);
+            sprintf(session[i].previousCommandOutput, "%s(%s)%s", session[i].previousCommandOutput, getNameByUserId(session[i].loggedInUserId), prefix);
           }
           
           // send result
