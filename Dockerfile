@@ -11,5 +11,8 @@ RUN echo "/usr/local/lib" >> /etc/ld.so.conf && \
 # install postgresql
 RUN apt-get install libpq-dev
 
+RUN echo "/usr/include/postgresql" >> /etc/ld.so.conf && \
+    ldconfig
+
 # https://github.com/ufoscout/docker-compose-wait/
 COPY --from=ghcr.io/ufoscout/docker-compose-wait:latest /wait /wait

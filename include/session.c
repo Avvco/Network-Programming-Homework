@@ -4,11 +4,12 @@ typedef struct{
   char *ip;
   int port;
   char *name;
+  char *loggedInUserId;
 
-  int isNextPassword; // 1 if next input is password
   char *providedUsername;
   char *providedPassword;
-  int loginMode; // 0: default, 1: username, 2: password, 3: login success
+  int mode; // -2: re entry, -1: default, 0: login, 1: register, 2: logged in
+  int inputMode; // -1: no input, 0: input is username, 1: input is password
   
   int pipeCounter;
   char *savedCommandOutput;

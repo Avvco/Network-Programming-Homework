@@ -7,6 +7,10 @@ char previousCommandOutput[PREVIOUS_COMMAND_OUTPUT_SIZE];
 
 char *prefix = "% ";
 char *welcome = "Welcome to the shell!\nType 'quit' or 'exit' to exit the shell.\n";
+char *prompt = "Welcome, type \"0\" to login, \"1\" to register, \"quit\" or \"exit\" to leave.\n";
+
+char quit[] = "quit";
+char _exitTerm[] = "exit";
 
 #include "../include/runCommand.c"
 #include "../include/customCommand.c"
@@ -45,13 +49,12 @@ void initShell() {
  * @return status of the command, -1 means exit, 0 means normal, 1 means error 
  */
 int process(char *command, Session *session, char **envp) {
-  char quit[] = "quit";
-  char _exit[] = "exit";
   char _setenv[] = "setenv";
   char printenv[] = "printenv";
   char *currentFirstCommand = malloc(128 * sizeof(char));
 
   char **splitedCommand = malloc(MAX_COMMANDS_SIZE * sizeof(char *));
+
   int isInternalCommand = 0;
   int piped = 0;
 
@@ -64,7 +67,7 @@ int process(char *command, Session *session, char **envp) {
     trim_command(splitedCommand[i]); 
   }
 
-  if(strcmp(splitedCommand[0], quit) == 0 || strcmp(splitedCommand[0], _exit) == 0) return -1;
+  if(strcmp(splitedCommand[0], quit) == 0 || strcmp(splitedCommand[0], _exitTerm) == 0) return -1;
 
   /**
    * Because the setenv in child process will not affect the parent process, 
