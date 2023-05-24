@@ -32,6 +32,7 @@
 
 void init() {
   initShell();
+  initPostgre();
   // init session
   session = malloc(MAX_CLIENTS * sizeof(Session));
   for(int i = 0 ; i < MAX_CLIENTS ; i++) { 
@@ -79,8 +80,8 @@ int updateMaxfd(fd_set fds, int maxfd) {
 }
 
 int main(int argc, char **argv, char **envp) {
-  fprintf(stderr, "server started\n");
   init();
+  fprintf(stderr, "server started\n");
 
   unsigned short int port;
   // argument to custom port
@@ -353,7 +354,7 @@ int main(int argc, char **argv, char **envp) {
             snprintf(sent, 512, "Welcome %s!\n(%s)$ ", session[i].name, session[i].name);
             session[i].mode = 2;
           }else {
-            snprintf(sent, 512, "%s%s ", prompt, prefix);
+            snprintf(sent, 512, "%s%s", prompt, prefix);
           }
           send(i, sent, strlen(sent) + 1, 0);
         }

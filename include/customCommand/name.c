@@ -16,7 +16,7 @@ void* nameProcessCommand(void *commandRequirement) {
   Name *current = (Name *)commandRequirement;
   char *returnStr = malloc(10240 * sizeof(char));
   if(current -> newName[1] == NULL) {
-    strcpy(returnStr, "name: not enough argument.\n");
+    strcpy(returnStr, "name: not enough argument.");
   }else if(strlen(current -> newName[1]) > 16) {
     strcpy(returnStr, "name is too long.");
   }else if(strcmp(current -> newName[1], " ") == 0) {

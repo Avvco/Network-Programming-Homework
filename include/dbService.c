@@ -57,8 +57,8 @@ int doOnPostgreWithOutput(char *command, PGresult **output) {
   char *conninfo = malloc(256 * sizeof(char));
   sprintf(conninfo, "host=%s port=%d user=%s password=%s dbname=%s", POSTGRES_IP, POSTGRES_PORT, POSTGRES_USERNAME, POSTGRES_PASSWORD, POSTGRES_USERNAME);
   PGconn *conn = PQconnectdb(conninfo);
-  fprintf(stderr, "Command %s\n", command);
-  if (PQstatus(conn) == CONNECTION_BAD) {        
+  // fprintf(stderr, "Command %s\n", command);
+  if (PQstatus(conn) == CONNECTION_BAD) {
     fprintf(stderr, "Can't connect to Postgres: %s\n", PQerrorMessage(conn));
     PQfinish(conn);
     exit(-1);
@@ -95,11 +95,11 @@ int initPostgre() {
                             PRIMARY KEY(user_id)                                      \
                           );";
   char *createMailTable = "CREATE TABLE IF NOT EXISTS network.mail (                  \
-                            mail_id uuid DEFAULT uuid_generate_v4 (),                 \
+                            mail_id SERIAL ,                                          \
                             sender_id uuid NOT NULL,                                  \
                             receiver_id uuid NOT NULL,                                \
-                            subject VARCHAR(64) NOT NULL,                             \
-                            content VARCHAR(1024) NOT NULL,                           \
+                            content VARCHAR(10240) NOT NULL,                          \
+                            data_time timestamp NOT NULL DEFAULT NOW(),               \
                             PRIMARY KEY(mail_id),                                     \
                             FOREIGN KEY(sender_id) REFERENCES network.user(user_id),  \
                             FOREIGN KEY(receiver_id) REFERENCES network.user(user_id) \
@@ -147,8 +147,8 @@ void printTable(PGresult *output) {
  */
 int login(Session *session) {
   PGresult *output = NULL;
-  fprintf(stderr, "%s\n", session -> providedUsername);
-  fprintf(stderr, "%s\n", session -> providedPassword);
+  // fprintf(stderr, "%s\n", session -> providedUsername);
+  // fprintf(stderr, "%s\n", session -> providedPassword);
   
   char *command = malloc(10240 * sizeof(char));
   
@@ -228,6 +228,44 @@ int setNameById(char *userId, char *newName) {
 }
 
 /**
+ * @brief Add new mail into database
+ * 
+ * @param senderId 
+ * @param receiverId 
+ * @param content 
+ * @return 0 if success, -1 if fail
+ */
+int insertMail(char *senderId, char *receiverId, char *content) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "INSERT INTO network.mail (sender_id, receiver_id, content) VALUES ('%s', '%s', '%s');", senderId, receiverId, content);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 0;
+}
+
+/**
+ * @brief Get the Mail By User Id 
+ * 
+ * @param userId 
+ * @return the mail of user, NULL if empty
+ */
+PGresult *getMailByUserId(char *userId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.mail WHERE receiver_id = '%s';", userId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return NULL;
+  }
+  if(PQntuples(output) == 0) {
+    return NULL;
+  }
+  return output;
+}
+
+/**
  * @brief Get the Name By User Id 
  * 
  * @param userId 
@@ -247,4 +285,64 @@ char *getNameByUserId(char *userId) {
   strcpy(name, PQgetvalue(output, 0, 0));
   PQclear(output);
   return name;
+}
+
+/**
+ * @brief Get the Id By Username object
+ * 
+ * @param username 
+ * @return id of user, NULL if fail
+ */
+char *getIdByUsername(char *username) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT user_id FROM network.user WHERE name = '%s';", username);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return NULL;
+  }
+  if(PQntuples(output) == 0) {
+    return NULL;
+  }
+  char *id = malloc(2048 * sizeof(char));
+  strcpy(id, PQgetvalue(output, 0, 0));
+  PQclear(output);
+  return id;
+}
+
+/**
+ * @brief Get the Mail with userName and Id
+ * 
+ * @return the id of mail, NULL if not found or fail  
+ */
+char *getMailWithUsernameAndId(char *userId, char *mailId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.mail WHERE receiver_id = '%s' AND mail_id = '%s';", userId, mailId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  char *id = malloc(2048 * sizeof(char));
+  if(PQntuples(output) == 0) {
+    return NULL;
+  }else {
+    strcpy(id, PQgetvalue(output, 0, 0));
+  }
+  return id;
+}
+
+/**
+ * @brief Delete the Mail By Id
+ * 
+ * @param mailId 
+ * @return 0 if success, -1 if fail
+ */
+int deleteMailWithId(char *mailId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "DELETE FROM network.mail WHERE mail_id = '%s';", mailId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 0;
 }

@@ -162,7 +162,7 @@ int process(char *command, Session *session, char **envp) {
     for(int j = 0 ; j < sizeof(customCommand) / sizeof(customCommand[0]) ; j++) {
       if(strcmp(customCommand[j].name, currentFirstCommand) == 0) {
         isCustomCommand = 1;
-        void *commandRequirement = customCommand[j].preCommand(currentCommand, session);
+        void *commandRequirement = customCommand[j].preCommand(currentCommand, session, envp);
         customCommand[j].processCommand(commandRequirement);
         free(commandRequirement);
         break;
