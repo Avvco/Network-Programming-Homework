@@ -8,9 +8,9 @@ typedef struct{
 #include "./customCommand/name.c"
 #include "./customCommand/yell.c"
 #include "./customCommand/tell.c"
-#include "./customCommand/mailto.c"
-#include "./customCommand/listMail.c"
-#include "./customCommand/delMail.c"
+#include "./customCommand/mail/mailto.c"
+#include "./customCommand/mail/listMail.c"
+#include "./customCommand/mail/delMail.c"
 
 CustomCommand customCommand[] = {
   {"who", whoPreCommand, whoProcessCommand},
