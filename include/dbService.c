@@ -319,7 +319,7 @@ char *getMailWithUsernameAndId(char *userId, char *mailId) {
   char *command = malloc(10240 * sizeof(char));
   snprintf(command, 10240, "SELECT * FROM network.mail WHERE receiver_id = '%s' AND mail_id = '%s';", userId, mailId);
   if(doOnPostgreWithOutput(command, &output) == -1) {
-    return -1;
+    return NULL;
   }
   char *id = malloc(2048 * sizeof(char));
   if(PQntuples(output) == 0) {
