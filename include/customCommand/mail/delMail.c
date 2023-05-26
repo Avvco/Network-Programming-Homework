@@ -19,15 +19,15 @@ void* delMailPreCommand(char *command, Session *session) {
 void* delMailProcessCommand(void *commandRequirement) { 
   DelMail *current = (DelMail *)commandRequirement;
   if(current -> mailId == NULL) {
-    strcat(previousCommandOutput, "delMail: not enough argument.\n");
+    strcpy(previousCommandOutput, "delMail: not enough argument.\n");
     return NULL;
   }
   char *foundMail = getMailWithUsernameAndId(current -> ownerId, current -> mailId);
   if(foundMail) {
     deleteMailWithId(foundMail);
-    strcat(previousCommandOutput, "Delete accept");
+    strcpy(previousCommandOutput, "Delete accept");
     
   }else {
-    strcat(previousCommandOutput, "Mail not found\n");
+    strcpy(previousCommandOutput, "Mail not found\n");
   }
 }

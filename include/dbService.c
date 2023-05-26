@@ -88,26 +88,35 @@ int doOnPostgre(char *command) {
 int initPostgre() {
   char *createExtension = "CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";";
   char *createSchema = "CREATE SCHEMA IF NOT EXISTS network;";
-  char *createUserTable = "CREATE TABLE IF NOT EXISTS network.user (                  \
-                            user_id uuid DEFAULT uuid_generate_v4(),                  \
-                            name VARCHAR(64) NOT NULL,                                \
-                            password VARCHAR(64) NOT NULL,                            \
-                            PRIMARY KEY(user_id)                                      \
+  char *createUserTable = "CREATE TABLE IF NOT EXISTS network.user (                    \
+                            user_id uuid DEFAULT uuid_generate_v4(),                    \
+                            name VARCHAR(64) NOT NULL,                                  \
+                            password VARCHAR(64) NOT NULL,                              \
+                            PRIMARY KEY(user_id)                                        \
                           );";
-  char *createMailTable = "CREATE TABLE IF NOT EXISTS network.mail (                  \
-                            mail_id SERIAL ,                                          \
-                            sender_id uuid NOT NULL,                                  \
-                            receiver_id uuid NOT NULL,                                \
-                            content VARCHAR(10240) NOT NULL,                          \
-                            data_time timestamp NOT NULL DEFAULT NOW(),               \
-                            PRIMARY KEY(mail_id),                                     \
-                            FOREIGN KEY(sender_id) REFERENCES network.user(user_id),  \
-                            FOREIGN KEY(receiver_id) REFERENCES network.user(user_id) \
+  char *createMailTable = "CREATE TABLE IF NOT EXISTS network.mail (                    \
+                            mail_id SERIAL,                                             \
+                            sender_id uuid NOT NULL,                                    \
+                            receiver_id uuid NOT NULL,                                  \
+                            content VARCHAR(10240) NOT NULL,                            \
+                            data_time timestamp NOT NULL DEFAULT NOW(),                 \
+                            PRIMARY KEY(mail_id),                                       \
+                            FOREIGN KEY(sender_id) REFERENCES network.user(user_id),    \
+                            FOREIGN KEY(receiver_id) REFERENCES network.user(user_id)   \
                           );";
+  char *createGroupTable = "CREATE TABLE IF NOT EXISTS network.group (                  \
+                              group_id uuid DEFAULT uuid_generate_v4(),                 \
+                              name VARCHAR(64) NOT NULL,                                \
+                              owner_id uuid NOT NULL,                                   \
+                              member_id uuid[],                                         \
+                              PRIMARY KEY(group_id),                                    \
+                              FOREIGN KEY(owner_id) REFERENCES network.user(user_id)    \
+                            );";
   if( doOnPostgre(createExtension)  == -1 || 
       doOnPostgre(createSchema)     == -1 || 
       doOnPostgre(createUserTable)  == -1 ||
-      doOnPostgre(createMailTable)  == -1
+      doOnPostgre(createMailTable)  == -1 ||
+      doOnPostgre(createGroupTable) == -1
     ) {
     return -1;
   }
@@ -153,11 +162,11 @@ int login(Session *session) {
   char *command = malloc(10240 * sizeof(char));
   
   snprintf(command, 10240, "SELECT * FROM network.user WHERE name = '%s' AND password = '%s';", session -> providedUsername, session -> providedPassword);
-  fprintf(stderr, "%s\n", command);
+  // fprintf(stderr, "%s\n", command);
   if(doOnPostgreWithOutput(command, &output) == -1) {
     return -1;
   }
-  printTable(output);
+  // printTable(output);
   if(PQntuples(output) == 0) {
     return 0;
   }
@@ -217,7 +226,7 @@ int existsByUsername(char *userName) {
  */
 int setNameById(char *userId, char *newName) {
   PGresult *output;
-  fprintf(stderr, "Set name of user %s to %s\n", userId, newName);
+  // fprintf(stderr, "Set name of user %s to %s\n", userId, newName);
   char *command = malloc(10240 * sizeof(char));
   snprintf(command, 10240, "UPDATE network.user SET name = '%s' WHERE user_id = '%s';", newName, userId);
   if(doOnPostgreWithOutput(command, &output) == -1) {
@@ -263,6 +272,259 @@ PGresult *getMailByUserId(char *userId) {
     return NULL;
   }
   return output;
+}
+
+/**
+ * @brief Create new group
+ * 
+ * @param newName 
+ * @param ownerId 
+ * @return 1 if already exist, 0 if success, -1 if fail 
+ */
+int newGroup(char *newName, char *ownerId) {
+  if(existGroupByName(newName) == 1) {
+    return 1;
+  }
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "INSERT INTO network.group (name, owner_id, member_id) VALUES ('%s', '%s', '{%s}');", newName, ownerId, ownerId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 0;
+}
+
+/**
+ * @brief Add user to group
+ * 
+ * @param groupName 
+ * @param userId 
+ * @return 1 if already exist, 0 if not, -1 if fail 
+ */
+int addUserToGroup(char *groupName, char *userId) {
+  if(existGroupByName(groupName) == 0) {
+    return -1;
+  }
+  if(existUserInGroup(groupName, userId) == 1) {
+    return 1;
+  }
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "UPDATE network.group SET member_id = array_append(member_id, '%s') WHERE name = '%s';", userId, groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 0;
+}
+
+/**
+ * @brief Remove user from group
+ * 
+ * @param groupName 
+ * @param userId 
+ * @return 1 if already exist, 0 if success, -1 if fail 
+ */
+int removeUserFromGroup(char *groupName, char *userId) {
+  if(existGroupByName(groupName) == 0) {
+    return -1;
+  }
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "UPDATE network.group SET member_id = array_remove(member_id, '%s') WHERE name = '%s';", userId, groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 0;
+}
+
+/**
+ * @brief Check if user is in group
+ * 
+ * @param groupName 
+ * @param userId 
+ * @return 1 if already in group, 0 if not, -1 if fail
+ */
+int existUserInGroup(char *groupName, char *userId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.group WHERE name = '%s' AND member_id @> '{%s}';", groupName, userId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  if(PQntuples(output) == 0) {
+    return 0;
+  }
+  PQclear(output);
+  return 1;
+}
+
+
+/**
+ * @brief Get the Group By Group name
+ * 
+ * @param groupName 
+ * @return 0 if not found, 1 if found, -1 if fail
+ */
+int existGroupByName(char *groupName) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.group WHERE name = '%s';", groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  if(PQntuples(output) == 0) {
+    return 0;
+  }
+  PQclear(output);
+  return 1;
+}
+
+/**
+ * @brief Get the Group By User Id 
+ * 
+ * @param userId 
+ * @return 1 if is owner, 0 if not, -1 if fail
+ */
+int isGroupOwner(char *groupName, char *userId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.group WHERE name = '%s' AND owner_id = '%s';", groupName, userId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  if(PQntuples(output) == 0) {
+    return 0;
+  }
+  PQclear(output);
+  return 1;
+}
+
+/**
+ * @brief Delete group
+ * 
+ * @param groupName 
+ * @param userId 
+ * @return 1 if success, 0 if not owner, -1 if fail
+ */
+int delGroup(char *groupName, char *userId) {
+  if(isGroupOwner(groupName, userId) != 1) {
+    return 0;
+  }
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "DELETE FROM network.group WHERE name = '%s';", groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 1;
+}
+
+/**
+ * @brief Leave group
+ * 
+ * @param groupName 
+ * @param userId 
+ * @return 1 if success, 0 if not in group, -1 if fail 
+ */
+int leaveGroup(char *groupName, char *userId) {
+  if(existUserInGroup(groupName, userId) != 1) {
+    return 0;
+  }
+  if(isGroupOwner(groupName, userId) == 1) {
+    return delGroup(groupName, userId);
+  }
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "UPDATE network.group SET member_id = array_remove(member_id, '%s') WHERE name = '%s';", userId, groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  PQclear(output);
+  return 1;
+}
+
+
+/**
+ * @brief Remove user from group by owner
+ * 
+ * @param groupName 
+ * @param userId 
+ * @param ownerId 
+ * @return 1 if success, 0 if not in group, -1 if fail, -2 if not owner
+ */
+int removeUserFromGroupByOwner(char *groupName, char *userId, char *ownerId) {
+  if(isGroupOwner(groupName, ownerId) != 1) {
+    return -2;
+  }
+  return leaveGroup(groupName, userId);
+}
+
+/**
+ * @brief Get the Group By User Id
+ * 
+ * @param userId 
+ * @return the group if success, NULL if empty
+ */
+PGresult *listGroupByUserId(char *userId) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.group WHERE member_id @> '{%s}';", userId);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return NULL;
+  }
+  if(PQntuples(output) == 0) {
+    return NULL;
+  }
+  // printTable(output);
+  return output;
+}
+
+/**
+ * @brief Get the Group By Group name
+ * 
+ * @param groupName 
+ * @return the group if success, NULL if empty
+ */
+PGresult *listGroupByGroupName(char *groupName) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT * FROM network.group WHERE name = '%s';", groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return NULL;
+  }
+  if(PQntuples(output) == 0) {
+    return NULL;
+  }
+  // printTable(output);
+  return output;
+}
+
+/**
+ * @brief Get all member in group if user in the group
+ * @param groupName
+ * @param finder the user that exist in group
+ * @param member if success, NULL if empty
+ * @return 1 if found, 0 if not found, -1 if fail
+ */
+int listMemberByGroupName(char *groupName, char *finder, char **member) {
+  PGresult *output;
+  char *command = malloc(10240 * sizeof(char));
+  snprintf(command, 10240, "SELECT member_id FROM network.group WHERE name = '%s';", groupName);
+  if(doOnPostgreWithOutput(command, &output) == -1) {
+    return -1;
+  }
+  if(PQntuples(output) == 0 || strstr(PQgetvalue(output, 0, 0), finder) == NULL) {
+    return 0;
+  }
+  int num = PQntuples(output);
+  // fprintf(stderr, "%d\n", PQntuples(output));
+  strcpy(*member, PQgetvalue(output, 0, 0));
+  PQclear(output);
+  return num;
 }
 
 /**

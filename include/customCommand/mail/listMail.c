@@ -18,6 +18,7 @@ void* listMailProcessCommand(void *commandRequirement) {
   }
   int rows = PQntuples(res);
   char *returnStr = malloc(102400 * sizeof(char));
+  memset(returnStr, 0, sizeof(returnStr));
   snprintf(returnStr, 1024000, "%-8s%-25s%-20s%-60s\n", "<ID>", "<DATE>", "<SENDER>", "<MESSAGE>");
   for(int i = 0 ; i < rows ; i++) {
     char *currentStr = malloc(10240 * sizeof(char));
@@ -30,5 +31,5 @@ void* listMailProcessCommand(void *commandRequirement) {
     strcat(returnStr, currentStr);
     free(currentStr);
   }
-  strcat(previousCommandOutput, returnStr);
+  strcpy(previousCommandOutput, returnStr);
 }

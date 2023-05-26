@@ -95,3 +95,38 @@ char **parseFrom1dTo2d(const char *command) {
   command_parse(cpcommand, _command);
   return _command;
 }
+
+/**
+ * @brief parse the command from 1d to 2d with delimiter
+ * 
+ * @param command command to parse
+ * @return the parsed command
+ */
+char **parseFrom1dTo2dWithDelim(const char *command, const char *delim) {
+  char cpcommand[MAX_COMMANDS_SIZE];
+
+  char **_command = malloc(MAX_COMMANDS_SIZE * sizeof(char *));
+
+  strcpy(cpcommand, command);
+  command_parse_with_delim(cpcommand, _command, delim);
+  return _command;
+}
+
+/**
+ * @brief split the command with space
+ * 
+ * @param command command to split
+ * @param args the array to store the splited command
+ * @return the number of the split commands
+ */
+int command_parse_with_delim(char *command, char **args, const char *delim) {
+  int argc = 0;
+  char *arg = malloc(MAX_COMMANDS_SIZE * sizeof(char));
+  arg = strtok(command, delim);
+  while (arg != NULL) {
+    args[argc++] = arg;
+    arg = strtok(NULL, delim);
+  }
+  args[argc] = NULL;
+  return argc;
+}

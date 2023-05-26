@@ -53,13 +53,13 @@ void* mailToPreCommand(char *command, Session *session, char **envp) {
 void* mailToProcessCommand(void *commandRequirement) { 
   MailTo *current = (MailTo *)commandRequirement;
   if(current -> errorMessage != NULL) {
-    strcat(previousCommandOutput, current -> errorMessage);
+    strcpy(previousCommandOutput, current -> errorMessage);
     return NULL;
   }
   char *receverId = getIdByUsername(current -> receiverName);
 
   if(receverId == NULL) {
-    strcat(previousCommandOutput, "receiver not found.");
+    strcpy(previousCommandOutput, "receiver not found.");
     return NULL;
   }
 
@@ -67,9 +67,10 @@ void* mailToProcessCommand(void *commandRequirement) {
   insertMail(current -> senderId, receverId, current -> content);
 
   char *returnStr = malloc(10240 * sizeof(char));
+  memset(returnStr, 0, sizeof(returnStr));
 
   // snprintf(returnStr, 10240, "senderId: %s\nreceiverName: %s\ncontent: %s\n", current -> senderId, current -> receiverName, current -> content);
   snprintf(returnStr, 10240, "Send accept!");
 
-  strcat(previousCommandOutput, returnStr);
+  strcpy(previousCommandOutput, returnStr);
 }

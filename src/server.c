@@ -351,7 +351,7 @@ int main(int argc, char **argv, char **envp) {
           char *sent = malloc(sizeof(char) * 512);
           if(session[i].loggedInUserId) {
             fprintf(stderr, "user %s logged in\n", session[i].name);
-            snprintf(sent, 512, "Welcome %s!\n(%s)$ ", session[i].name, session[i].name);
+            snprintf(sent, 512, "Welcome %s!\n(%s)%% ", session[i].name, session[i].name);
             session[i].mode = 2;
           }else {
             snprintf(sent, 512, "%s%s", prompt, prefix);
