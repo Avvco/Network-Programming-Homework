@@ -12,7 +12,10 @@ sudo bash run.sh
 ```
 ## Services
 ### Server
-- URL <http://127.0.0.1:64550>
+In terminal 
+ ```
+ telnet 127.0.0.1 64550
+ ```
 ### Adminer
 - URL <http://127.0.0.1:64549>
 - System: `PostgreSQL`
