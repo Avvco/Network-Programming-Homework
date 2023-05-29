@@ -295,7 +295,7 @@ int main(int argc, char **argv, char **envp) {
             session[i].mode = 1;
             goto restart;
           }else {
-            char *buffer = malloc(sizeof(char) * 64);
+            char *buffer = malloc(sizeof(char) * 512);
             strcpy(buffer, prompt);
             buffer = strcat(buffer, prefix);
             send(i, buffer, strlen(buffer) + 1, 0);
