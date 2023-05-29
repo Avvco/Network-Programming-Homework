@@ -44,10 +44,10 @@ void* removeFromGroupProcessCommand(void *commandRequirement) {
     memset(currentStr, 0, sizeof(currentStr));
     // fprintf(stderr, "toAdd[%d]: %s\n", index, parseFrom1dTo2d(current -> toAdd)[index]);
     char *userId = getIdByUsername(parseFrom1dTo2d(current -> toAdd)[index]);
-    if(strcmp(userId, current -> senderId) == 0) {
-      snprintf(returnStr, 1024, "removeFromGroup: you can't remove yourself from the group.\n");
-    }else if(userId == NULL) {
+    if(userId == NULL) {
       snprintf(currentStr, 1024, "removeFromGroup: user '%s' not exist.\n", parseFrom1dTo2d(current -> toAdd)[index]);
+    }else if(strcmp(userId, current -> senderId) == 0) {
+      snprintf(returnStr, 1024, "removeFromGroup: you can't remove yourself from the group.\n");
     }else {
       int result = removeUserFromGroupByOwner(current -> groupName, userId, current -> senderId);
       if(result == 0) {
